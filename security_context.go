@@ -9,4 +9,11 @@ type SecurityContext interface {
 			- https://github.com/firebase/firebase-admin-go/tree/master/auth
 	*/
 	NewFirebaseAuthVerifier() FirebaseAuthVerifier
+
+	/*
+		Returns Google API Key verifier.
+		see)
+			- https://cloud.google.com/docs/authentication/api-keys?hl=en
+	*/
+	NewGoogleApiKeyVerifier() GoogleApiKeyVerifier
 }

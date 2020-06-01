@@ -2,11 +2,56 @@
 
 # Firebase Auth token verifier
 
-# Google Cloud Platform　API Key validator
+```go
+var securityContext SecurityContext
+
+func HandleHttp(w http.ResponseWriter, r *http.Request) {
+    authToken := // get Firebase Token from request.
+
+    parsedToken, err := securityContext.NewFirebaseAuthVerifier().Verify(apiKey)
+    if err != nil {
+        panic("Invalid Firebase Token!!")
+    }
+    
+    // do something...
+}
+
+func main() {
+    configs := &secure_backend.SecurityContextConfigs{}
+    if ctx, err := secure_backend.NewSecurityContext(configs); err != nil {
+        panic(err)
+    } else {
+        securityContext = ctx
+    }
+}
+```
+
+# Google Cloud Platform API Key validator
 
 Validation your API Key, created by Google Cloud Platform.
 
+```go
 
+var securityContext SecurityContext
+
+func HandleHttp(w http.ResponseWriter, r *http.Request) {
+    apiKey := // get Google API Key from reqeust.
+    if !securityContext.NewGoogleApiKeyVerifier().Verify(apiKey) {
+        panic("Invalid Google API Key!!")
+    }
+    
+    // do something.
+}
+
+func main() {
+    configs := &secure_backend.SecurityContextConfigs{}
+    if ctx, err := secure_backend.NewSecurityContext(configs); err != nil {
+        panic(err)
+    } else {
+        securityContext = ctx
+    }
+}
+```
 
 ## Step1. Enable ServiceControl API.
 
