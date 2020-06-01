@@ -6,6 +6,8 @@
 
 Validation your API Key, created by Google Cloud Platform.
 
+
+
 ## Step1. Enable ServiceControl API.
 
 You need [ServiceControl](https://console.cloud.google.com/apis/library/servicecontrol.googleapis.com) API to enable.

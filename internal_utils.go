@@ -1,4 +1,4 @@
-package internal
+package secure_backend
 
 import (
 	"crypto/sha512"

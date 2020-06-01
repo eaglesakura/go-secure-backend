@@ -1,4 +1,4 @@
-package internal
+package secure_backend
 
 import (
 	"context"
@@ -9,7 +9,6 @@ import (
 	"firebase.google.com/go/auth"
 	"fmt"
 	"github.com/dgrijalva/jwt-go"
-	"github.com/eaglesakura/secure_backend"
 	"github.com/patrickmn/go-cache"
 	"golang.org/x/oauth2/google"
 	"golang.org/x/xerrors"
@@ -64,13 +63,13 @@ type securityContextImpl struct {
 	}
 }
 
-func (it *securityContextImpl) NewFirebaseAuthVerifier() secure_backend.FirebaseAuthVerifier {
+func (it *securityContextImpl) NewFirebaseAuthVerifier() FirebaseAuthVerifier {
 	return &firebaseAuthVerifierImpl{
 		owner: it,
 	}
 }
 
-func (it *securityContextImpl) NewGoogleApiKeyVerifier() secure_backend.GoogleApiKeyVerifier {
+func (it *securityContextImpl) NewGoogleApiKeyVerifier() GoogleApiKeyVerifier {
 	return &googleApiKeyVerifierImpl{
 		owner: it,
 	}
@@ -180,7 +179,7 @@ func (it *securityContextImpl) init() error {
 /*
 	New instance.
 */
-func NewSecurityContext(configs *secure_backend.SecurityContextConfigs) (secure_backend.SecurityContext, error) {
+func NewSecurityContext(configs *SecurityContextConfigs) (SecurityContext, error) {
 	result := &securityContextImpl{}
 	if configs != nil {
 		result.ctx = configs.Context

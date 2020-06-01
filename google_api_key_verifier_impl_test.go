@@ -1,4 +1,4 @@
-package internal
+package secure_backend
 
 import (
 	"github.com/eaglesakura/secure_backend/testutils"

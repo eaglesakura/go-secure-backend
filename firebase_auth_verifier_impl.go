@@ -1,11 +1,10 @@
-package internal
+package secure_backend
 
 import (
 	"encoding/json"
 	"errors"
 	"fmt"
 	"github.com/dgrijalva/jwt-go"
-	"github.com/eaglesakura/secure_backend"
 	"golang.org/x/xerrors"
 	"time"
 )
@@ -26,12 +25,12 @@ func (it *firebaseAuthVerifierImpl) logError(msg string) {
 	it.owner.logError(msg)
 }
 
-func (it *firebaseAuthVerifierImpl) AcceptOriginalToken() secure_backend.FirebaseAuthVerifier {
+func (it *firebaseAuthVerifierImpl) AcceptOriginalToken() FirebaseAuthVerifier {
 	it.acceptOriginalToken = true
 	return it
 }
 
-func (it *firebaseAuthVerifierImpl) verifyOriginalToken(token string) (*secure_backend.VerifiedFirebaseAuthToken, error) {
+func (it *firebaseAuthVerifierImpl) verifyOriginalToken(token string) (*VerifiedFirebaseAuthToken, error) {
 	parsed, err := jwt.Parse(token, func(token *jwt.Token) (interface{}, error) {
 		return &it.owner.gcp.privateKey.PublicKey, nil
 	})
@@ -78,8 +77,8 @@ func (it *firebaseAuthVerifierImpl) verifyOriginalToken(token string) (*secure_b
 				expTime = time.Unix(t, 0)
 			}
 
-			return &secure_backend.VerifiedFirebaseAuthToken{
-				User: &secure_backend.FirebaseUser{
+			return &VerifiedFirebaseAuthToken{
+				User: &FirebaseUser{
 					Id: uid.(string),
 				},
 				Claims:   allClaims,
@@ -89,7 +88,7 @@ func (it *firebaseAuthVerifierImpl) verifyOriginalToken(token string) (*secure_b
 	}
 }
 
-func (it *firebaseAuthVerifierImpl) verifyFirebaseClientToken(token string) (*secure_backend.VerifiedFirebaseAuthToken, error) {
+func (it *firebaseAuthVerifierImpl) verifyFirebaseClientToken(token string) (*VerifiedFirebaseAuthToken, error) {
 	parsed, err := it.owner.gcp.firebaseAuth.VerifyIDToken(it.owner.ctx, token)
 	if err != nil {
 		return nil, err
@@ -105,8 +104,8 @@ func (it *firebaseAuthVerifierImpl) verifyFirebaseClientToken(token string) (*se
 		for key, value := range parsed.Claims {
 			allClaims[key] = value
 		}
-		return &secure_backend.VerifiedFirebaseAuthToken{
-			User: &secure_backend.FirebaseUser{
+		return &VerifiedFirebaseAuthToken{
+			User: &FirebaseUser{
 				Id: parsed.UID,
 			},
 			Claims:   allClaims,
@@ -115,7 +114,7 @@ func (it *firebaseAuthVerifierImpl) verifyFirebaseClientToken(token string) (*se
 	}
 }
 
-func (it *firebaseAuthVerifierImpl) Verify(token string) (*secure_backend.VerifiedFirebaseAuthToken, error) {
+func (it *firebaseAuthVerifierImpl) Verify(token string) (*VerifiedFirebaseAuthToken, error) {
 	parse, _ := jwt.Parse(token, nil)
 	if parse == nil {
 		return nil, errors.New("token parse error")

@@ -1,8 +1,7 @@
-package internal
+package secure_backend
 
 import (
 	"fmt"
-	"github.com/eaglesakura/secure_backend"
 	"github.com/google/uuid"
 	"golang.org/x/xerrors"
 	"google.golang.org/api/servicecontrol/v1"
@@ -26,7 +25,7 @@ func (it *googleApiKeyVerifierImpl) logError(msg string) {
 	it.owner.logError(msg)
 }
 
-func (it *googleApiKeyVerifierImpl) ServiceName(serviceName string) secure_backend.GoogleApiKeyVerifier {
+func (it *googleApiKeyVerifierImpl) ServiceName(serviceName string) GoogleApiKeyVerifier {
 	it.serviceName = serviceName
 	return it
 }
