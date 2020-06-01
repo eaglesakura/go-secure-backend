@@ -1,0 +1,12 @@
+swagger: "2.0"
+info:
+  version: "1.0"
+  title: "https://github.com/eaglesakura/go-secure-backend"
+host: "HOST_NAME"
+paths:
+  /dev/null:
+    get:
+      operationId: "/dev/null"
+      responses:
+        "200":
+          description: "/dev/null"
