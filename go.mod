@@ -1,4 +1,4 @@
-module github.com/eaglesakura/secure_backend
+module github.com/eaglesakura/go-secure-backend
 
 go 1.12
 

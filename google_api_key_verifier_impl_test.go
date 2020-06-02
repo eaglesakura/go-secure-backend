@@ -1,7 +1,7 @@
 package secure_backend
 
 import (
-	"github.com/eaglesakura/secure_backend/testutils"
+	"github.com/eaglesakura/go-secure-backend/testutils"
 	"github.com/stretchr/testify/assert"
 	"testing"
 )
