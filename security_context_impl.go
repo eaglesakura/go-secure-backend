@@ -1,14 +1,15 @@
 package secure_backend
 
 import (
+	"cloud.google.com/go/compute/metadata"
 	"context"
-	"errors"
+	"crypto/rsa"
+	"encoding/json"
 	firebase "firebase.google.com/go"
 	"firebase.google.com/go/auth"
 	"fmt"
 	"github.com/dgrijalva/jwt-go"
 	"github.com/patrickmn/go-cache"
-	"golang.org/x/oauth2/google"
 	"golang.org/x/xerrors"
 	"google.golang.org/api/option"
 	"google.golang.org/api/servicecontrol/v1"
@@ -38,7 +39,7 @@ type securityContextImpl struct {
 		/*
 			Current public Key
 		*/
-		serviceAccountPublicKey *googlePublicKey
+		serviceAccountPublicKeys *googlePublicKeyCache
 
 		/*
 			Service Account email address.
@@ -74,52 +75,44 @@ func (it *securityContextImpl) NewGoogleApiKeyVerifier() GoogleApiKeyVerifier {
 	}
 }
 
-func (it *securityContextImpl) findPublicKey(ctx context.Context, client *auth.Client, serviceAccountEmail string) (*googlePublicKey, error) {
-	keys, err := getGooglePublicKeys("https://www.googleapis.com/robot/v1/metadata/x509/" + url.PathEscape(serviceAccountEmail))
-	if err != nil {
-		return nil, err
+func (it *securityContextImpl) getGoogleProjectInfoFromJson(file []byte) (projectId string, email string, publicKey *googlePublicKey, err error) {
+	type ServiceAccountModel struct {
+		ProjectId    string `json:"project_id"`
+		ClientEmail  string `json:"client_email,omitempty"`
+		PrivateKeyId string `json:"private_key_id"`
+		PrivateKey   string `json:"private_key,omitempty"`
 	}
 
-	token, _ := client.CustomToken(ctx, "dummy-user-id")
-	// try all key
-	for _, key := range keys {
-		_, err := jwt.Parse(token, func(token *jwt.Token) (interface{}, error) {
-			return key.publicKey, nil
-		})
-		if err == nil {
-			it.logInfo(fmt.Sprintf("Google Public KID: %v", key.kid))
-			return key, nil
-		}
+	dto := ServiceAccountModel{}
+	if err := json.Unmarshal(file, &dto); err != nil {
+		return "", "", nil, xerrors.Errorf("service account parse error %w", err)
 	}
 
-	return nil, errors.New(fmt.Sprintf("Public key not found: %v", serviceAccountEmail))
+	var privateKey *rsa.PrivateKey
+	if pem, err := jwt.ParseRSAPrivateKeyFromPEM([]byte(dto.PrivateKey)); err != nil {
+		return "", "", nil, xerrors.Errorf("private key parse error %w", err)
+	} else {
+		privateKey = pem
+	}
+
+	return dto.ProjectId, dto.ClientEmail, &googlePublicKey{
+		kid:       dto.PrivateKeyId,
+		publicKey: &privateKey.PublicKey,
+	}, nil
 }
 
-func (it *securityContextImpl) getGoogleProjectInfo(ctx context.Context, client *auth.Client) (projectId string, serviceAccountEmail string, publicKey *googlePublicKey, err error) {
-	token, err := client.CustomToken(ctx, "dummy-user-id")
+func (it *securityContextImpl) getGoogleProjectInfoFromMetadata() (projectId string, serviceAccountEmail string, err error) {
+	projectId, err = metadata.ProjectID()
 	if err != nil {
-		return "", "", nil, xerrors.Errorf("Mock token generate failed: %w", err)
+		return "", "", xerrors.Errorf("metadata read failed(%v): %w", "ProjectId", err)
 	}
 
-	parse, _ := jwt.Parse(token, nil)
-	claims := parse.Claims.(jwt.MapClaims)
-
-	serviceAccountEmail = claims["iss"].(string)
-
-	credentials, err := google.FindDefaultCredentials(ctx)
+	serviceAccountEmail, err = metadata.Get("instance/service-accounts/default/email")
 	if err != nil {
-		return "", "", nil, xerrors.Errorf("FindDefaultCredentials failed: %w", err)
+		return "", "", xerrors.Errorf("metadata read failed(%v): %w", "instance/service-accounts/default/email", err)
 	}
 
-	projectId = credentials.ProjectID
-
-	// download public key.
-	publicKey, err = it.findPublicKey(ctx, client, serviceAccountEmail)
-	if err != nil {
-		return "", "", nil, err
-	}
-
-	return projectId, serviceAccountEmail, publicKey, nil
+	return projectId, serviceAccountEmail, nil
 }
 
 func (it *securityContextImpl) initForGcp() error {
@@ -145,6 +138,7 @@ func (it *securityContextImpl) initForGcp() error {
 		it.logInfo("Init service account from System key")
 	}
 
+	// init Firebase App.
 	firebaseApp, err := func() (*firebase.App, error) {
 		if len(serviceAccountJson) > 0 {
 			return firebase.NewApp(ctx, nil, option.WithCredentialsJSON(serviceAccountJson))
@@ -155,6 +149,12 @@ func (it *securityContextImpl) initForGcp() error {
 	if err != nil {
 		return xerrors.Errorf("Firebase App init failed: %w", err)
 	}
+	firebaseAuth, err := firebaseApp.Auth(ctx)
+	if err != nil {
+		return xerrors.Errorf("Firebase Auth initialize error: %w", err)
+	}
+
+	// init ServiceControl.
 	serviceCtrl, err := func() (*servicecontrol.Service, error) {
 		if len(serviceAccountJson) > 0 {
 			return servicecontrol.NewService(ctx, option.WithCredentialsJSON(serviceAccountJson))
@@ -162,29 +162,58 @@ func (it *securityContextImpl) initForGcp() error {
 			return servicecontrol.NewService(ctx)
 		}
 	}()
-
 	if err != nil {
 		return xerrors.Errorf("ServiceControl init failed: %w", err)
 	}
 
-	firebaseAuth, err := firebaseApp.Auth(ctx)
-	if err != nil {
-		return xerrors.Errorf("Firebase Auth initialize error: %w", err)
-	}
-
-	projectId, email, publicKey, err := it.getGoogleProjectInfo(ctx, firebaseAuth)
-	if err != nil {
-		return xerrors.Errorf("parse project info failed: %w", err)
-	}
-
-	it.logInfo(fmt.Sprintf("GCP initialize success: %v", projectId))
 	it.gcp.validApiKeys = cache.New(time.Hour, time.Minute)
-	it.gcp.serviceAccountPublicKey = publicKey
 	it.gcp.firebaseAuth = firebaseAuth
 	it.gcp.serviceAccountJson = serviceAccountJson
-	it.gcp.clientEmail = email
-	it.gcp.projectId = projectId
 	it.gcp.serviceControlClient = serviceCtrl
+	if serviceAccountJson != nil {
+		it.logInfo("config load from JSON")
+		projectId, email, publicKey, err := it.getGoogleProjectInfoFromJson(serviceAccountJson)
+		if err != nil {
+			return xerrors.Errorf("ServiceAccount file parse failed: %w", err)
+		}
+		it.logInfo(fmt.Sprintf("GCP initialize success: %v", projectId))
+		it.gcp.clientEmail = email
+		it.gcp.projectId = projectId
+		keyCache := newGooglePublicKeyCache(
+			"https://www.googleapis.com/robot/v1/metadata/x509/" + url.PathEscape(email))
+		keyCache.addOfflineKey(publicKey)
+		err = keyCache.refreshKeys()
+		if err != nil {
+			return xerrors.Errorf("Public key refresh failed: %w", err)
+		}
+		it.gcp.serviceAccountPublicKeys = keyCache
+	} else {
+		it.logInfo("GCP config load from metadata")
+		projectId, email, err := it.getGoogleProjectInfoFromMetadata()
+		if err != nil {
+			return xerrors.Errorf("Metadata parse failed: %w", err)
+		}
+		it.logInfo(fmt.Sprintf("GCP initialize success: %v", projectId))
+		it.gcp.clientEmail = email
+		it.gcp.projectId = projectId
+		keyCache := newGooglePublicKeyCache(
+			"https://www.googleapis.com/robot/v1/metadata/x509/" + url.PathEscape(email))
+		err = keyCache.refreshKeys()
+		if err != nil {
+			return xerrors.Errorf("Public key refresh failed: %w", err)
+		}
+		it.gcp.serviceAccountPublicKeys = keyCache
+	}
+
+	it.logInfo("Google Cloud Platform load completed.")
+	it.logInfo(fmt.Sprintf("  * projectId: %v", it.gcp.projectId))
+	it.logInfo(fmt.Sprintf("  * service account: %v", it.gcp.clientEmail))
+	if it.gcp.serviceAccountPublicKeys.latestKey != nil {
+		it.logInfo(fmt.Sprintf("  * public key default: %v", it.gcp.serviceAccountPublicKeys.latestKey.kid))
+	}
+	for kid, _ := range it.gcp.serviceAccountPublicKeys.allKeys {
+		it.logInfo(fmt.Sprintf("  * public key online: %v", kid))
+	}
 
 	return nil
 }
