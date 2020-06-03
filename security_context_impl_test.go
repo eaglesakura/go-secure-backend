@@ -17,6 +17,7 @@ func Test_securityContextImpl_init(t *testing.T) {
 	assert.NotNil(t, impl.gcp.firebaseAuth)
 	assert.NotNil(t, impl.gcp.serviceControlClient)
 	assert.NotEmpty(t, impl.gcp.clientEmail)
-	assert.NotNil(t, impl.gcp.privateKey)
+	assert.NotNil(t, impl.gcp.serviceAccountPublicKey)
+	assert.NotNil(t, impl.gcp.serviceAccountPublicKey.publicKey)
 	assert.NotEmpty(t, impl.gcp.projectId)
 }

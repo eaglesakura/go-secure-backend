@@ -32,7 +32,7 @@ func (it *firebaseAuthVerifierImpl) AcceptOriginalToken() FirebaseAuthVerifier {
 
 func (it *firebaseAuthVerifierImpl) verifyOriginalToken(token string) (*VerifiedFirebaseAuthToken, error) {
 	parsed, err := jwt.Parse(token, func(token *jwt.Token) (interface{}, error) {
-		return &it.owner.gcp.privateKey.PublicKey, nil
+		return it.owner.gcp.serviceAccountPublicKey.publicKey, nil
 	})
 
 	if err != nil {
