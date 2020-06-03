@@ -6,6 +6,16 @@ import (
 	"testing"
 )
 
+//func TestGetGooglePublicKey(t *testing.T) {
+//	service, err := iam.NewService(context.Background())
+//	assert.NoError(t, err)
+//	assert.NotNil(t, service)
+//
+//	credentials, err := google.FindDefaultCredentials(context.Background())
+//	assert.NoError(t, err)
+//	assert.NotNil(t, credentials)
+//}
+
 func TestFirebaseAuthVerifierImpl_Verify(t *testing.T) {
 	owner := &securityContextImpl{}
 	assert.NoError(t, owner.init())

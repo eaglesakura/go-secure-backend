@@ -1,5 +1,15 @@
 # go-secure-backend
 
+# IAM settings.
+
+You need attach roles to your service account.
+
+* for Firebase Auth token verify.
+    * Firebase Admin SDK Administrator Service Agent
+    * Service Account Token Creator
+* for API Key verify.
+    * Service Controller
+
 # Firebase Auth token verifier
 
 ```go
@@ -72,12 +82,8 @@ gcloud init
 cd path/to/go-secure-backend
 ./scripts/enable-cloud-endpoint.sh "your-gcp-project-name.appspot.com"
 ```
-## Step3. IAM settings.
 
-You need attach 'servicemanagement.services.check' permission to your service account.
-example, you can attach 'Service Controller' role to your Service Account.
-
-## (Option) Step4. API Key security.
+## (Option) Step3. API Key security.
 
 You can enable 'restrict key' mode to your API Key on GCP Console.
 

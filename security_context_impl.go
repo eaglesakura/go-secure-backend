@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"github.com/dgrijalva/jwt-go"
 	"github.com/patrickmn/go-cache"
+	"golang.org/x/oauth2/google"
 	"golang.org/x/xerrors"
 	"google.golang.org/api/option"
 	"google.golang.org/api/servicecontrol/v1"
@@ -15,7 +16,6 @@ import (
 	"log"
 	"net/url"
 	"os"
-	"strings"
 	"time"
 )
 
@@ -105,7 +105,13 @@ func (it *securityContextImpl) getGoogleProjectInfo(ctx context.Context, client 
 	claims := parse.Claims.(jwt.MapClaims)
 
 	serviceAccountEmail = claims["iss"].(string)
-	projectId = serviceAccountEmail[strings.Index(serviceAccountEmail, "@")+1 : strings.Index(serviceAccountEmail, ".iam.gserviceaccount.com")]
+
+	credentials, err := google.FindDefaultCredentials(ctx)
+	if err != nil {
+		return "", "", nil, xerrors.Errorf("FindDefaultCredentials failed: %w", err)
+	}
+
+	projectId = credentials.ProjectID
 
 	// download public key.
 	publicKey, err = it.findPublicKey(ctx, client, serviceAccountEmail)
