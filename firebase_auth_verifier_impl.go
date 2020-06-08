@@ -11,6 +11,9 @@ import (
 
 type firebaseAuthVerifierImpl struct {
 	owner *securityContextImpl
+
+	logger *Logger
+
 	/*
 		option.
 	*/
@@ -18,11 +21,11 @@ type firebaseAuthVerifierImpl struct {
 }
 
 func (it *firebaseAuthVerifierImpl) logInfo(msg string) {
-	it.owner.logInfo(msg)
+	it.logger.logInfo(msg)
 }
 
 func (it *firebaseAuthVerifierImpl) logError(msg string) {
-	it.owner.logError(msg)
+	it.logger.logError(msg)
 }
 
 func (it *firebaseAuthVerifierImpl) AcceptOriginalToken() FirebaseAuthVerifier {

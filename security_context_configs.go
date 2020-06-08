@@ -5,7 +5,7 @@ import (
 )
 
 /*
-	Logger function
+	logger function
 */
 type SecurityContextConfigs struct {
 	/*
@@ -14,14 +14,9 @@ type SecurityContextConfigs struct {
 	Context context.Context
 
 	/*
-		Custom log function.
+		Custom logger.
 	*/
-	LogInfo func(message string)
-
-	/*
-		Custom error log function.
-	*/
-	LogError func(message string)
+	Logger *Logger
 
 	/*
 		Custom GCP service account's json file.

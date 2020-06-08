@@ -14,16 +14,14 @@ import (
 	"google.golang.org/api/option"
 	"google.golang.org/api/servicecontrol/v1"
 	"io/ioutil"
-	"log"
 	"net/url"
 	"os"
 	"time"
 )
 
 type securityContextImpl struct {
-	ctx      context.Context
-	logInfo  func(message string)
-	logError func(message string)
+	ctx    context.Context
+	logger *Logger
 
 	/*
 		Google Cloud Platform data.
@@ -63,15 +61,21 @@ type securityContextImpl struct {
 	}
 }
 
+func (it *securityContextImpl) logInfo(message string) {
+	it.logger.logInfo(message)
+}
+
 func (it *securityContextImpl) NewFirebaseAuthVerifier() FirebaseAuthVerifier {
 	return &firebaseAuthVerifierImpl{
-		owner: it,
+		owner:  it,
+		logger: it.logger,
 	}
 }
 
 func (it *securityContextImpl) NewGoogleApiKeyVerifier() GoogleApiKeyVerifier {
 	return &googleApiKeyVerifierImpl{
-		owner: it,
+		owner:  it,
+		logger: it.logger,
 	}
 }
 
@@ -225,18 +229,9 @@ func (it *securityContextImpl) init() error {
 	if it.ctx == nil {
 		it.ctx = context.Background()
 	}
-
-	if it.logInfo == nil {
-		it.logInfo = func(message string) {
-			log.Println(message)
-		}
+	if it.logger == nil {
+		it.logger = &Logger{}
 	}
-	if it.logError == nil {
-		it.logError = func(message string) {
-			log.Println(message)
-		}
-	}
-
 	if err := it.initForGcp(); err != nil {
 		return err
 	}
@@ -250,8 +245,7 @@ func NewSecurityContext(configs *SecurityContextConfigs) (SecurityContext, error
 	result := &securityContextImpl{}
 	if configs != nil {
 		result.ctx = configs.Context
-		result.logInfo = configs.LogInfo
-		result.logError = configs.LogError
+		result.logger = configs.Logger
 		result.gcp.serviceAccountJson = configs.GoogleServiceAccountJson
 	}
 	if err := result.init(); err != nil {

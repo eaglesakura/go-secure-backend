@@ -11,6 +11,8 @@ import (
 type googleApiKeyVerifierImpl struct {
 	owner *securityContextImpl
 
+	logger *Logger
+
 	/*
 		Custom service name.
 	*/
@@ -18,11 +20,11 @@ type googleApiKeyVerifierImpl struct {
 }
 
 func (it *googleApiKeyVerifierImpl) logInfo(msg string) {
-	it.owner.logInfo(msg)
+	it.logger.logInfo(msg)
 }
 
 func (it *googleApiKeyVerifierImpl) logError(msg string) {
-	it.owner.logError(msg)
+	it.logger.logError(msg)
 }
 
 func (it *googleApiKeyVerifierImpl) ServiceName(serviceName string) GoogleApiKeyVerifier {
