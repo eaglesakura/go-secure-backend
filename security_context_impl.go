@@ -184,7 +184,7 @@ func (it *securityContextImpl) initForGcp() error {
 		it.gcp.clientEmail = email
 		it.gcp.projectId = projectId
 		keyCache := newGooglePublicKeyCache(
-			"https://www.googleapis.com/robot/v1/metadata/x509/" + url.PathEscape(email))
+			"https://www.googleapis.com/robot/v1/metadata/x509/"+url.PathEscape(email), it.logger)
 		keyCache.addOfflineKey(publicKey)
 		err = keyCache.refreshKeys()
 		if err != nil {
@@ -201,7 +201,7 @@ func (it *securityContextImpl) initForGcp() error {
 		it.gcp.clientEmail = email
 		it.gcp.projectId = projectId
 		keyCache := newGooglePublicKeyCache(
-			"https://www.googleapis.com/robot/v1/metadata/x509/" + url.PathEscape(email))
+			"https://www.googleapis.com/robot/v1/metadata/x509/"+url.PathEscape(email), it.logger)
 		err = keyCache.refreshKeys()
 		if err != nil {
 			return xerrors.Errorf("Public key refresh failed: %w", err)

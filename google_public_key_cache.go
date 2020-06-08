@@ -8,6 +8,7 @@ import (
 )
 
 type googlePublicKeyCache struct {
+	logger *Logger
 	/*
 		Metadata server URL.
 	*/
@@ -68,6 +69,8 @@ func (it *googlePublicKeyCache) parseJwt(token string) (*googlePublicKey, *jwt.T
 		}
 	}
 
+	it.logger.logError("public key not found on memory cache. refresh start.")
+
 	// Not found, refresh
 	err := it.refreshKeys()
 	if err != nil {
@@ -87,13 +90,16 @@ func (it *googlePublicKeyCache) parseJwt(token string) (*googlePublicKey, *jwt.T
 		}
 	}
 
+	it.logger.logError("fatal, Public key not found on google repository")
+
 	// Not found public key.
 	return nil, nil, errors.New("signature validation failed in all public keys")
 }
 
-func newGooglePublicKeyCache(metadataUrl string) *googlePublicKeyCache {
+func newGooglePublicKeyCache(metadataUrl string, logger *Logger) *googlePublicKeyCache {
 	return &googlePublicKeyCache{
 		metadataUrl: metadataUrl,
+		logger:      logger,
 		lock:        new(sync.Mutex),
 		offlineKeys: make(map[string]*googlePublicKey),
 	}

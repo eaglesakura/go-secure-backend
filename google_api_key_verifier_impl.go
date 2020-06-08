@@ -27,6 +27,11 @@ func (it *googleApiKeyVerifierImpl) logError(msg string) {
 	it.logger.logError(msg)
 }
 
+func (it *googleApiKeyVerifierImpl) Logger(logger *Logger) GoogleApiKeyVerifier {
+	it.logger = logger
+	return it
+}
+
 func (it *googleApiKeyVerifierImpl) ServiceName(serviceName string) GoogleApiKeyVerifier {
 	it.serviceName = serviceName
 	return it

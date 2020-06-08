@@ -5,6 +5,11 @@ Google Cloud Platform API Key verify.
 */
 type GoogleApiKeyVerifier interface {
 	/*
+		Set custom logger.
+	*/
+	Logger(logger *Logger) GoogleApiKeyVerifier
+
+	/*
 		Set custom service name for 'Service Control' check API.
 		Default is 'your-gcp-name.appspot.com'
 		https://cloud.google.com/service-infrastructure/docs/service-control/getting-started?hl=en

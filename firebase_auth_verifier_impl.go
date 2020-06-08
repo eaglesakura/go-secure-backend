@@ -28,6 +28,11 @@ func (it *firebaseAuthVerifierImpl) logError(msg string) {
 	it.logger.logError(msg)
 }
 
+func (it *firebaseAuthVerifierImpl) Logger(logger *Logger) FirebaseAuthVerifier {
+	it.logger = logger
+	return it
+}
+
 func (it *firebaseAuthVerifierImpl) AcceptOriginalToken() FirebaseAuthVerifier {
 	it.acceptOriginalToken = true
 	return it

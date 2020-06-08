@@ -4,6 +4,12 @@ package secure_backend
 Verifier for Firebase Auth token.
 */
 type FirebaseAuthVerifier interface {
+
+	/*
+		Set custom logger.
+	*/
+	Logger(logger *Logger) FirebaseAuthVerifier
+
 	/*
 		Support Original JWT Token.
 		sub = your GCP Project
