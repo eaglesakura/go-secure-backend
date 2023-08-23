@@ -16,7 +16,7 @@ on:
 jobs:
   go-test:
     name: "Go module test"
-    runs-on: ubuntu-18.04
+    runs-on: ubuntu-22.04
     if: contains(github.event.head_commit.message, '[ci skip]') == false
     env:
       GOOGLE_SERVICE_ACCOUNT_JSON: ${{secrets.GOOGLE_SERVICE_ACCOUNT_JSON}}
@@ -28,9 +28,9 @@ jobs:
           mkdir private
           echo $GOOGLE_SERVICE_ACCOUNT_JSON > "private/service-account.json"
       - name: "environments / Golang"
-        uses: actions/setup-go@v1
+        uses: actions/setup-go@v3
         with:
-          go-version: 1.12
+          go-version: 1.21
         id: go
       - name: "environments"
         run: |
@@ -38,15 +38,8 @@ jobs:
           echo "PWD=$PWD"
           go version
           ls -al
-      - name: "cache / Golang"
-        uses: actions/cache@v1
-        with:
-          path: ~/go/pkg/mod
-          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
-          restore-keys: |
-            ${{ runner.os }}-go-
       - name: "Golang / mod"
-        run: go mod download
+        run: go mod tidy
       - name: "Golang / format"
         run: |
           if [ "`go fmt "<<parameters.check-path>>" | grep ".go"`" != "" ]; then
