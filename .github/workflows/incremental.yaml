@@ -22,7 +22,7 @@ jobs:
       GOOGLE_SERVICE_ACCOUNT_JSON: ${{secrets.GOOGLE_SERVICE_ACCOUNT_JSON}}
       GOOGLE_API_KEY: ${{secrets.GOOGLE_API_KEY}}
     steps:
-      - uses: actions/checkout@v2.0.0
+      - uses: actions/checkout@v3
       - name: "environments / Service Account"
         run: |
           mkdir private
