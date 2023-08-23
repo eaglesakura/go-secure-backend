@@ -1,6 +1,7 @@
 package secure_backend
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -28,14 +29,12 @@ func (it *firebaseAuthVerifierImpl) logError(msg string) {
 	it.logger.logError(msg)
 }
 
-func (it *firebaseAuthVerifierImpl) Logger(logger *Logger) FirebaseAuthVerifier {
+func (it *firebaseAuthVerifierImpl) SetLogger(logger *Logger) {
 	it.logger = logger
-	return it
 }
 
-func (it *firebaseAuthVerifierImpl) AcceptOriginalToken() FirebaseAuthVerifier {
+func (it *firebaseAuthVerifierImpl) AcceptOriginalToken() {
 	it.acceptOriginalToken = true
-	return it
 }
 
 func (it *firebaseAuthVerifierImpl) verifyOriginalToken(token string) (*VerifiedFirebaseAuthToken, error) {
@@ -94,8 +93,8 @@ func (it *firebaseAuthVerifierImpl) verifyOriginalToken(token string) (*Verified
 	}
 }
 
-func (it *firebaseAuthVerifierImpl) verifyFirebaseClientToken(token string) (*VerifiedFirebaseAuthToken, error) {
-	parsed, err := it.owner.gcp.firebaseAuth.VerifyIDToken(it.owner.ctx, token)
+func (it *firebaseAuthVerifierImpl) verifyFirebaseClientToken(ctx context.Context, token string) (*VerifiedFirebaseAuthToken, error) {
+	parsed, err := it.owner.gcp.firebaseAuth.VerifyIDToken(ctx, token)
 	if err != nil {
 		return nil, err
 	} else {
@@ -120,7 +119,7 @@ func (it *firebaseAuthVerifierImpl) verifyFirebaseClientToken(token string) (*Ve
 	}
 }
 
-func (it *firebaseAuthVerifierImpl) Verify(token string) (*VerifiedFirebaseAuthToken, error) {
+func (it *firebaseAuthVerifierImpl) Verify(ctx context.Context, token string) (*VerifiedFirebaseAuthToken, error) {
 	parse, _ := jwt.Parse(token, nil)
 	if parse == nil {
 		return nil, errors.New("token parse error")
@@ -136,6 +135,6 @@ func (it *firebaseAuthVerifierImpl) Verify(token string) (*VerifiedFirebaseAuthT
 	} else if it.acceptOriginalToken && sub == it.owner.gcp.clientEmail {
 		return it.verifyOriginalToken(token)
 	} else {
-		return it.verifyFirebaseClientToken(token)
+		return it.verifyFirebaseClientToken(ctx, token)
 	}
 }

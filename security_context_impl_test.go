@@ -1,16 +1,17 @@
 package secure_backend
 
 import (
-	"github.com/stretchr/testify/assert"
+	"context"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func Test_securityContextImpl_init(t *testing.T) {
 	impl := &securityContextImpl{}
-
-	err := impl.init()
+	ctx := context.Background()
+	err := impl.init(ctx)
 	assert.NoError(t, err)
-	assert.NotNil(t, impl.ctx)
 
 	// check gcp
 	assert.NotEmpty(t, impl.gcp.serviceAccountJson)

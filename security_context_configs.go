@@ -1,18 +1,9 @@
 package secure_backend
 
-import (
-	"context"
-)
-
 /*
 logger function
 */
 type SecurityContextConfigs struct {
-	/*
-		Custom context.
-	*/
-	Context context.Context
-
 	/*
 		Custom logger.
 	*/

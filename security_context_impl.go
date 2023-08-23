@@ -19,7 +19,6 @@ import (
 )
 
 type securityContextImpl struct {
-	ctx    context.Context
 	logger *Logger
 
 	/*
@@ -118,9 +117,7 @@ func (it *securityContextImpl) getGoogleProjectInfoFromMetadata() (projectId str
 	return projectId, serviceAccountEmail, nil
 }
 
-func (it *securityContextImpl) initForGcp() error {
-	ctx := it.ctx
-
+func (it *securityContextImpl) initForGcp(ctx context.Context) error {
 	serviceAccountJson := it.gcp.serviceAccountJson
 	if serviceAccountJson == nil {
 		it.logInfo("load GOOGLE_APPLICATION_CREDENTIALS")
@@ -224,14 +221,11 @@ func (it *securityContextImpl) initForGcp() error {
 /*
 Initialize context.
 */
-func (it *securityContextImpl) init() error {
-	if it.ctx == nil {
-		it.ctx = context.Background()
-	}
+func (it *securityContextImpl) init(ctx context.Context) error {
 	if it.logger == nil {
 		it.logger = &Logger{}
 	}
-	if err := it.initForGcp(); err != nil {
+	if err := it.initForGcp(ctx); err != nil {
 		return err
 	}
 	return nil
@@ -240,14 +234,13 @@ func (it *securityContextImpl) init() error {
 /*
 New instance.
 */
-func NewSecurityContext(configs *SecurityContextConfigs) (SecurityContext, error) {
+func NewSecurityContext(ctx context.Context, configs *SecurityContextConfigs) (SecurityContext, error) {
 	result := &securityContextImpl{}
 	if configs != nil {
-		result.ctx = configs.Context
 		result.logger = configs.Logger
 		result.gcp.serviceAccountJson = configs.GoogleServiceAccountJson
 	}
-	if err := result.init(); err != nil {
+	if err := result.init(ctx); err != nil {
 		return nil, err
 	}
 	return result, nil

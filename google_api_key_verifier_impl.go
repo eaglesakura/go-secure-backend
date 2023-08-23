@@ -1,6 +1,7 @@
 package secure_backend
 
 import (
+	"context"
 	"fmt"
 	"time"
 
@@ -27,17 +28,15 @@ func (it *googleApiKeyVerifierImpl) logError(msg string) {
 	it.logger.logError(msg)
 }
 
-func (it *googleApiKeyVerifierImpl) Logger(logger *Logger) GoogleApiKeyVerifier {
+func (it *googleApiKeyVerifierImpl) SetLogger(logger *Logger) {
 	it.logger = logger
-	return it
 }
 
-func (it *googleApiKeyVerifierImpl) ServiceName(serviceName string) GoogleApiKeyVerifier {
+func (it *googleApiKeyVerifierImpl) SetServiceName(serviceName string) {
 	it.serviceName = serviceName
-	return it
 }
 
-func (it *googleApiKeyVerifierImpl) verifyImpl(key *validGoogleApiKey) error {
+func (it *googleApiKeyVerifierImpl) verifyImpl(ctx context.Context, key *validGoogleApiKey) error {
 	operationId := uuid.New().String()
 	client := it.owner.gcp.serviceControlClient
 	resp, err := client.Services.Check(key.serviceName, &servicecontrol.CheckRequest{
@@ -47,7 +46,7 @@ func (it *googleApiKeyVerifierImpl) verifyImpl(key *validGoogleApiKey) error {
 			ConsumerId:    "api_key:" + key.apiKey,
 			StartTime:     time.Now().Format(time.RFC3339Nano),
 		},
-	}).Do()
+	}).Context(ctx).Do()
 
 	if err != nil {
 		return fmt.Errorf("ServiceControl API call failed: %w", err)
@@ -66,7 +65,7 @@ func (it *googleApiKeyVerifierImpl) verifyImpl(key *validGoogleApiKey) error {
 	return nil
 }
 
-func (it *googleApiKeyVerifierImpl) Verify(apiKey string) error {
+func (it *googleApiKeyVerifierImpl) Verify(ctx context.Context, apiKey string) error {
 	// check cache
 	validApiKeys := it.owner.gcp.validApiKeys
 
@@ -83,7 +82,7 @@ func (it *googleApiKeyVerifierImpl) Verify(apiKey string) error {
 		// cache not found.
 		// do check this API Key.
 		it.logInfo(fmt.Sprintf("Validation API Key by ServiceControl API: %v:hash(%v)", key.serviceName, sha512sum(key.apiKey)))
-		if err := it.verifyImpl(&key); err != nil {
+		if err := it.verifyImpl(ctx, &key); err != nil {
 			return err
 		}
 	} else {
