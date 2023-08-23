@@ -7,7 +7,7 @@ import (
 )
 
 /*
-	Verified JWT Data.
+Verified JWT Data.
 */
 type VerifiedFirebaseAuthToken struct {
 	/*

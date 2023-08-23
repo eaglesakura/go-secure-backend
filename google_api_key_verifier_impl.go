@@ -2,10 +2,10 @@ package secure_backend
 
 import (
 	"fmt"
-	"github.com/google/uuid"
-	"golang.org/x/xerrors"
-	"google.golang.org/api/servicecontrol/v1"
 	"time"
+
+	"github.com/google/uuid"
+	"google.golang.org/api/servicecontrol/v1"
 )
 
 type googleApiKeyVerifierImpl struct {
@@ -50,7 +50,7 @@ func (it *googleApiKeyVerifierImpl) verifyImpl(key *validGoogleApiKey) error {
 	}).Do()
 
 	if err != nil {
-		return xerrors.Errorf("ServiceControl API call failed: %w", err)
+		return fmt.Errorf("ServiceControl API call failed: %w", err)
 	}
 
 	if len(resp.CheckErrors) != 0 {
@@ -60,7 +60,7 @@ func (it *googleApiKeyVerifierImpl) verifyImpl(key *validGoogleApiKey) error {
 			message += fmt.Sprintf("%v,", e.Detail)
 		}
 
-		return xerrors.Errorf("API Validation error[%v]", message)
+		return fmt.Errorf("API Validation error[%v]", message)
 	}
 
 	return nil

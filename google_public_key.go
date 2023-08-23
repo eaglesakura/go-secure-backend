@@ -7,8 +7,7 @@ import (
 	"encoding/pem"
 	"errors"
 	"fmt"
-	"golang.org/x/xerrors"
-	"io/ioutil"
+	"io"
 	"net/http"
 )
 
@@ -20,7 +19,7 @@ type googlePublicKey struct {
 func getGooglePublicKeys(url string) ([]*googlePublicKey, error) {
 	resp, err := http.Get(url)
 	if err != nil {
-		return nil, xerrors.Errorf("Google public key download failed / %v: %w", url, err)
+		return nil, fmt.Errorf("Google public key download failed / %v: %w", url, err)
 	} else if resp.Body != nil {
 		defer func() {
 			_ = resp.Body.Close()
@@ -28,22 +27,22 @@ func getGooglePublicKeys(url string) ([]*googlePublicKey, error) {
 	}
 
 	if resp.StatusCode != http.StatusOK {
-		return nil, xerrors.Errorf("Google public key download status error: %v / %v", resp.StatusCode, url)
+		return nil, fmt.Errorf("Google public key download status error: %v / %v", resp.StatusCode, url)
 	}
 
-	metadataBody, err := ioutil.ReadAll(resp.Body)
+	metadataBody, err := io.ReadAll(resp.Body)
 	keys := map[string]string{}
 
 	err = json.Unmarshal(metadataBody, &keys)
 	if err != nil {
-		return nil, xerrors.Errorf("Google public key parse failed: %w", err)
+		return nil, fmt.Errorf("Google public key parse failed: %w", err)
 	}
 
 	resultKeys := make([]*googlePublicKey, 0)
 	for kid, pemString := range keys {
 		key, err := parseGooglePublicKey(kid, pemString)
 		if err != nil {
-			return nil, xerrors.Errorf("Google public key(%v) decode failed: %w", kid, err)
+			return nil, fmt.Errorf("Google public key(%v) decode failed: %w", kid, err)
 		}
 
 		resultKeys = append(resultKeys, key)
@@ -59,7 +58,7 @@ func parseGooglePublicKey(kid string, key string) (*googlePublicKey, error) {
 	}
 	cert, err := x509.ParseCertificate(block.Bytes)
 	if err != nil {
-		return nil, xerrors.Errorf("ParseCertificate failed(%v): %w", kid, err)
+		return nil, fmt.Errorf("ParseCertificate failed(%v): %w", kid, err)
 	}
 	pk, ok := cert.PublicKey.(*rsa.PublicKey)
 	if !ok {

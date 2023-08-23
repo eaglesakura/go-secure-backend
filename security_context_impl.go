@@ -1,22 +1,21 @@
 package secure_backend
 
 import (
-	"cloud.google.com/go/compute/metadata"
 	"context"
 	"crypto/rsa"
 	"encoding/json"
-	firebase "firebase.google.com/go"
-	"firebase.google.com/go/auth"
 	"fmt"
-	"github.com/dgrijalva/jwt-go"
-	"github.com/patrickmn/go-cache"
-	"golang.org/x/xerrors"
-	"google.golang.org/api/option"
-	"google.golang.org/api/servicecontrol/v1"
-	"io/ioutil"
 	"net/url"
 	"os"
 	"time"
+
+	"cloud.google.com/go/compute/metadata"
+	firebase "firebase.google.com/go"
+	"firebase.google.com/go/auth"
+	"github.com/golang-jwt/jwt"
+	"github.com/patrickmn/go-cache"
+	"google.golang.org/api/option"
+	"google.golang.org/api/servicecontrol/v1"
 )
 
 type securityContextImpl struct {
@@ -89,12 +88,12 @@ func (it *securityContextImpl) getGoogleProjectInfoFromJson(file []byte) (projec
 
 	dto := ServiceAccountModel{}
 	if err := json.Unmarshal(file, &dto); err != nil {
-		return "", "", nil, xerrors.Errorf("service account parse error %w", err)
+		return "", "", nil, fmt.Errorf("service account parse error %w", err)
 	}
 
 	var privateKey *rsa.PrivateKey
 	if pem, err := jwt.ParseRSAPrivateKeyFromPEM([]byte(dto.PrivateKey)); err != nil {
-		return "", "", nil, xerrors.Errorf("private key parse error %w", err)
+		return "", "", nil, fmt.Errorf("private key parse error %w", err)
 	} else {
 		privateKey = pem
 	}
@@ -108,12 +107,12 @@ func (it *securityContextImpl) getGoogleProjectInfoFromJson(file []byte) (projec
 func (it *securityContextImpl) getGoogleProjectInfoFromMetadata() (projectId string, serviceAccountEmail string, err error) {
 	projectId, err = metadata.ProjectID()
 	if err != nil {
-		return "", "", xerrors.Errorf("metadata read failed(%v): %w", "ProjectId", err)
+		return "", "", fmt.Errorf("metadata read failed(%v): %w", "ProjectId", err)
 	}
 
 	serviceAccountEmail, err = metadata.Get("instance/service-accounts/default/email")
 	if err != nil {
-		return "", "", xerrors.Errorf("metadata read failed(%v): %w", "instance/service-accounts/default/email", err)
+		return "", "", fmt.Errorf("metadata read failed(%v): %w", "instance/service-accounts/default/email", err)
 	}
 
 	return projectId, serviceAccountEmail, nil
@@ -128,9 +127,9 @@ func (it *securityContextImpl) initForGcp() error {
 
 		path := os.Getenv("GOOGLE_APPLICATION_CREDENTIALS")
 		if len(path) > 0 {
-			bytes, err := ioutil.ReadFile(path)
+			bytes, err := os.ReadFile(path)
 			if err != nil {
-				return xerrors.Errorf("service account load failed %w", err)
+				return fmt.Errorf("service account load failed %w", err)
 			}
 			serviceAccountJson = bytes
 		}
@@ -151,11 +150,11 @@ func (it *securityContextImpl) initForGcp() error {
 		}
 	}()
 	if err != nil {
-		return xerrors.Errorf("Firebase App init failed: %w", err)
+		return fmt.Errorf("firebase App init failed: %w", err)
 	}
 	firebaseAuth, err := firebaseApp.Auth(ctx)
 	if err != nil {
-		return xerrors.Errorf("Firebase Auth initialize error: %w", err)
+		return fmt.Errorf("firebase Auth initialize error: %w", err)
 	}
 
 	// init ServiceControl.
@@ -167,7 +166,7 @@ func (it *securityContextImpl) initForGcp() error {
 		}
 	}()
 	if err != nil {
-		return xerrors.Errorf("ServiceControl init failed: %w", err)
+		return fmt.Errorf("ServiceControl init failed: %w", err)
 	}
 
 	it.gcp.validApiKeys = cache.New(time.Hour, time.Minute)
@@ -178,7 +177,7 @@ func (it *securityContextImpl) initForGcp() error {
 		it.logInfo("config load from JSON")
 		projectId, email, publicKey, err := it.getGoogleProjectInfoFromJson(serviceAccountJson)
 		if err != nil {
-			return xerrors.Errorf("ServiceAccount file parse failed: %w", err)
+			return fmt.Errorf("ServiceAccount file parse failed: %w", err)
 		}
 		it.logInfo(fmt.Sprintf("GCP initialize success: %v", projectId))
 		it.gcp.clientEmail = email
@@ -188,14 +187,14 @@ func (it *securityContextImpl) initForGcp() error {
 		keyCache.addOfflineKey(publicKey)
 		err = keyCache.refreshKeys()
 		if err != nil {
-			return xerrors.Errorf("Public key refresh failed: %w", err)
+			return fmt.Errorf("Public key refresh failed: %w", err)
 		}
 		it.gcp.serviceAccountPublicKeys = keyCache
 	} else {
 		it.logInfo("GCP config load from metadata")
 		projectId, email, err := it.getGoogleProjectInfoFromMetadata()
 		if err != nil {
-			return xerrors.Errorf("Metadata parse failed: %w", err)
+			return fmt.Errorf("Metadata parse failed: %w", err)
 		}
 		it.logInfo(fmt.Sprintf("GCP initialize success: %v", projectId))
 		it.gcp.clientEmail = email
@@ -204,7 +203,7 @@ func (it *securityContextImpl) initForGcp() error {
 			"https://www.googleapis.com/robot/v1/metadata/x509/"+url.PathEscape(email), it.logger)
 		err = keyCache.refreshKeys()
 		if err != nil {
-			return xerrors.Errorf("Public key refresh failed: %w", err)
+			return fmt.Errorf("Public key refresh failed: %w", err)
 		}
 		it.gcp.serviceAccountPublicKeys = keyCache
 	}
@@ -223,7 +222,7 @@ func (it *securityContextImpl) initForGcp() error {
 }
 
 /*
-	Initialize context.
+Initialize context.
 */
 func (it *securityContextImpl) init() error {
 	if it.ctx == nil {
@@ -239,7 +238,7 @@ func (it *securityContextImpl) init() error {
 }
 
 /*
-	New instance.
+New instance.
 */
 func NewSecurityContext(configs *SecurityContextConfigs) (SecurityContext, error) {
 	result := &securityContextImpl{}

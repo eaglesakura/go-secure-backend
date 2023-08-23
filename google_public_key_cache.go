@@ -2,9 +2,10 @@ package secure_backend
 
 import (
 	"errors"
-	"github.com/dgrijalva/jwt-go"
-	"golang.org/x/xerrors"
+	"fmt"
 	"sync"
+
+	"github.com/golang-jwt/jwt"
 )
 
 type googlePublicKeyCache struct {
@@ -32,7 +33,7 @@ func (it *googlePublicKeyCache) refreshKeys() error {
 
 	keys, err := getGooglePublicKeys(it.metadataUrl)
 	if err != nil {
-		return xerrors.Errorf("Public key cache refresh failed: %w", err)
+		return fmt.Errorf("Public key cache refresh failed: %w", err)
 	}
 
 	it.allKeys = make(map[string]*googlePublicKey)

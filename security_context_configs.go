@@ -5,7 +5,7 @@ import (
 )
 
 /*
-	logger function
+logger function
 */
 type SecurityContextConfigs struct {
 	/*

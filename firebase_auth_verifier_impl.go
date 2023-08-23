@@ -4,9 +4,9 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/dgrijalva/jwt-go"
-	"golang.org/x/xerrors"
 	"time"
+
+	"github.com/golang-jwt/jwt"
 )
 
 type firebaseAuthVerifierImpl struct {
@@ -43,7 +43,7 @@ func (it *firebaseAuthVerifierImpl) verifyOriginalToken(token string) (*Verified
 
 	if err != nil {
 		it.logError(fmt.Sprintf("jwt.Parse error: %v", err))
-		return nil, xerrors.Errorf("JWT.parse failed: %w", err)
+		return nil, fmt.Errorf("JWT.parse failed: %w", err)
 	} else if !parsed.Valid {
 		return nil, errors.New("invalid JWT")
 	} else {
